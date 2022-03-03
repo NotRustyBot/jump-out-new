@@ -17,31 +17,9 @@ let app = new PIXI.Application({
 });
 app.stop();
 
-let list = [
-    "LMAO jíít já tu nechci být!",
-    "nula čtyři nula pět cos to jacku cos to sněd",
-    "remobing Error plis vejt",
-    "dobrá kočka prd ví",
-    "vič skůl ju hav tu drop aut to greduejt? péérešut skůl",
-    "načítám skočeč",
-    "diskord ping pingus bingus ket",
-    "from di first styrings ov lajf beníf voter.",
-    "ven ju pozdě",
-    "kemo ten loudér nějak sakuje",
-    "hau it fils tu ču fajf gam",
-    "grafárna? usmažit, prosím.",
-    "máš hlad? jdi jíst.",
-    "konzole log kolik máš drog",
-];
-
 LoadPrograms();
 LoadImages(() => {
-    PIXI.Ticker.shared.add(update);
-    let say = new SpeechSynthesisUtterance(list[Math.floor(Math.random() * list.length)]);
-    speechSynthesis.speak(say);
-
     new Graphics(new BaseObject(), app.stage, "r300", {size: 1});
-
     app.start();
 });
 
