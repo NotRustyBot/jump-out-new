@@ -1,9 +1,14 @@
 import { createServer } from "http";
-import { WebSocketServer, WebSocket } from "ws";
+import { WebSocketServer, WebSocket, RawData } from "ws";
 import { AutoView, loop } from "jump-engine";
-import { SystemMessage, SystemMessageDatagram } from "jump-out-shared";
+import { Connection } from "./connection";
+import { game, gameStatus } from "./game";
+import { Player } from "./player";
+import { INewObjects, NewObjectsDatagram, packetType } from "jump-out-shared";
 
 let server = createServer(function (request, response) {});
+
+game.status = gameStatus.joinable;
 
 let port = process.env.PORT || 20003;
 server.listen(port, function () {
@@ -13,26 +18,31 @@ server.listen(port, function () {
 let wsServer = new WebSocketServer({ server });
 wsServer.on("connection", onConnection);
 
-let connections: WebSocket[] = [];
-
 let buffer = new ArrayBuffer(1000);
-let av = new AutoView(buffer);
+let outView = new AutoView(buffer);
 
 function onConnection(connection: WebSocket) {
-    console.log("new connection");
-    let sendee: SystemMessage = { text: "hello", type: "info" };
-    SystemMessageDatagram.serialise(av, sendee);
-    connection.send(av);
-    connections.push(connection);
+    Connection.handleNew(connection);
 }
 
 function main(dt: number) {
-    av.index = 0;
-    let sendee: SystemMessage = { text: dt.toFixed(3), type: "info" };
-    SystemMessageDatagram.serialise(av, sendee);
-    for (const connection of connections) {
-        connection.send(av);
+    outView.index = 0;
+    let newObjects: INewObjects = {
+        newObjects: game.getNewObjects(),
+        newComponents: game.getNewLinks(),
+    };
+    if (newObjects.newComponents.length > 0) {
+        outView.writeUint8(packetType.newObjects);
+        NewObjectsDatagram.serialise(outView, newObjects);
     }
+
+    for (const [id, player] of Player.list) {
+        player.update(dt);
+        if (outView.index > 0) {
+            player.sendAutoView(outView);
+        }
+    }
+    game.nextCycle();
 }
 
 loop.updateOrder.push(main);
